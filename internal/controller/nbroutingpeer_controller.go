@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -182,9 +183,12 @@ func (r *NBRoutingPeerReconciler) handleDeployment(ctx context.Context, req ctrl
 									},
 								},
 								SecurityContext: &corev1.SecurityContext{
+									Privileged: pointer.Bool(true),
 									Capabilities: &corev1.Capabilities{
 										Add: []corev1.Capability{
 											"NET_ADMIN",
+											"SYS_ADMIN",
+											"SYS_RESOURCE",
 										},
 									},
 								},
@@ -260,9 +264,12 @@ func (r *NBRoutingPeerReconciler) handleDeployment(ctx context.Context, req ctrl
 			},
 		}
 		updatedDeployment.Spec.Template.Spec.Containers[0].SecurityContext = &corev1.SecurityContext{
+			Privileged: pointer.Bool(true),
 			Capabilities: &corev1.Capabilities{
 				Add: []corev1.Capability{
 					"NET_ADMIN",
+					"SYS_ADMIN",
+					"SYS_RESOURCE",
 				},
 			},
 		}
@@ -291,7 +298,6 @@ func (r *NBRoutingPeerReconciler) handleDeployment(ctx context.Context, req ctrl
 func (r *NBRoutingPeerReconciler) handleRouter(ctx context.Context, nbrp *netbirdiov1.NBRoutingPeer, nbGroup netbirdiov1.NBGroup, logger logr.Logger) error {
 	// Check NetworkRouter exists
 	routers, err := r.netbird.Networks.Routers(*nbrp.Status.NetworkID).List(ctx)
-
 	if err != nil {
 		logger.Error(errNetBirdAPI, "error listing network routers", "err", err)
 		nbrp.Status.Conditions = netbirdiov1.NBConditionFalse("APIError", fmt.Sprintf("error listing network routers: %v", err))
@@ -310,7 +316,6 @@ func (r *NBRoutingPeerReconciler) handleRouter(ctx context.Context, nbrp *netbir
 				Metric:     9999,
 				PeerGroups: &[]string{*nbGroup.Status.GroupID},
 			})
-
 			if err != nil {
 				logger.Error(errNetBirdAPI, "error creating network router", "err", err)
 				nbrp.Status.Conditions = netbirdiov1.NBConditionFalse("APIError", fmt.Sprintf("error creating network router: %v", err))
@@ -328,7 +333,6 @@ func (r *NBRoutingPeerReconciler) handleRouter(ctx context.Context, nbrp *netbir
 				Metric:     9999,
 				PeerGroups: &[]string{*nbGroup.Status.GroupID},
 			})
-
 			if err != nil {
 				logger.Error(errNetBirdAPI, "error updating network router", "err", err)
 				nbrp.Status.Conditions = netbirdiov1.NBConditionFalse("APIError", fmt.Sprintf("error updating network router: %v", err))
@@ -356,7 +360,6 @@ func (r *NBRoutingPeerReconciler) handleSetupKey(ctx context.Context, req ctrl.R
 			Name:       networkName,
 			Type:       "reusable",
 		})
-
 		if err != nil {
 			logger.Error(errNetBirdAPI, "error creating setup key", "err", err)
 			nbrp.Status.Conditions = netbirdiov1.NBConditionFalse("APIError", fmt.Sprintf("error creating setup key: %v", err))
@@ -405,7 +408,6 @@ func (r *NBRoutingPeerReconciler) handleSetupKey(ctx context.Context, req ctrl.R
 		if (err != nil && strings.Contains(err.Error(), "not found")) || setupKey.Revoked {
 			if setupKey != nil && setupKey.Revoked {
 				err = r.netbird.SetupKeys.Delete(ctx, *nbrp.Status.SetupKeyID)
-
 				if err != nil {
 					logger.Error(errNetBirdAPI, "error deleting setup key", "err", err)
 					nbrp.Status.Conditions = netbirdiov1.NBConditionFalse("APIError", fmt.Sprintf("error deleting setup key: %v", err))
@@ -431,7 +433,6 @@ func (r *NBRoutingPeerReconciler) handleSetupKey(ctx context.Context, req ctrl.R
 			// Someone deleted setup key secret
 			// Revoke SK from NetBird and re-generate
 			err = r.netbird.SetupKeys.Delete(ctx, *nbrp.Status.SetupKeyID)
-
 			if err != nil {
 				logger.Error(errNetBirdAPI, "error deleting setup key", "err", err)
 				nbrp.Status.Conditions = netbirdiov1.NBConditionFalse("APIError", fmt.Sprintf("error deleting setup key: %v", err))
@@ -487,7 +488,6 @@ func (r *NBRoutingPeerReconciler) handleGroup(ctx context.Context, req ctrl.Requ
 		}
 
 		err = r.Client.Create(ctx, &nbGroup)
-
 		if err != nil {
 			logger.Error(errKubernetesAPI, "error creating NBGroup", "err", err)
 			nbrp.Status.Conditions = netbirdiov1.NBConditionFalse("internalError", fmt.Sprintf("error creating NBGroup: %v", err))

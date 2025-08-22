@@ -130,7 +130,12 @@ func (d *PodNetbirdInjector) Default(ctx context.Context, obj runtime.Object) er
 		},
 		SecurityContext: &corev1.SecurityContext{
 			Capabilities: &corev1.Capabilities{
-				Add: []corev1.Capability{"NET_ADMIN"},
+				Privileged: pointer.Bool(true),
+				Add: []corev1.Capability{
+					"NET_ADMIN",
+					"SYS_ADMIN",
+					"SYS_RESOURCE",
+				},
 			},
 		},
 		VolumeMounts: nbSetupKey.Spec.VolumeMounts,

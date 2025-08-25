@@ -23,6 +23,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -129,8 +130,8 @@ func (d *PodNetbirdInjector) Default(ctx context.Context, obj runtime.Object) er
 			},
 		},
 		SecurityContext: &corev1.SecurityContext{
+			Privileged: pointer.Bool(true),
 			Capabilities: &corev1.Capabilities{
-				Privileged: pointer.Bool(true),
 				Add: []corev1.Capability{
 					"NET_ADMIN",
 					"SYS_ADMIN",
